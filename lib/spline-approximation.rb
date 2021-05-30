@@ -1,3 +1,4 @@
+# coding: utf-8
 #
 # spline-approximation.rb
 #
@@ -6,9 +7,6 @@
 # Author:    bk1 (Karl Brodowsky)
 #
 
-require "rational"
-require "long-decimal"
-require "bigdecimal"
 require "complex"
 
 class SplineApproximation
@@ -22,7 +20,7 @@ class SplineApproximation
     if (x_min.kind_of? Complex) 
       raise "x_min must not be a complex number"
     end
-    if (x_max.kind_of Complex)
+    if (x_max.kind_of? Complex)
       raise "x_max must not be a complex number"
     end
     if (x_min >= x_max)
@@ -54,7 +52,11 @@ class SplineApproximation
     
   end # initialize
 
-  attr_reader :x_min, :x_max, :n, :h, :x, :count
+  attr_reader :x_min, :x_max, :n, :h, :x, :count, :results
+
+  def to_s
+    "SplineApproximation(x_min=#{x_min} x_max=#{x_max} n=#{n} count=#{count})"
+  end
 
   def x_i(i)
     @x_i[i+3]
@@ -107,7 +109,7 @@ class SplineApproximation
       cline = line.map do |element|
         c = element.abs**3
         if (k <= n+1)
-          cub_sum[i+1]+=c
+          @cub_sums[i+1]+=c
         end
         k += 1
         c
@@ -123,7 +125,7 @@ class SplineApproximation
       pivot_i = -1
       pivot_crit = 0
       (k..n+1).each do |i|
-        pc = @cub[i+1,k+1] / @cub_sums[i+1]
+        pc = @cub[i+1][k+1] / @cub_sums[i+1]
         if (pc > pivot_crit)
           pivot_i = i
           pivot_crit = pc
@@ -135,19 +137,37 @@ class SplineApproximation
         @lin_equ[k+1] = line
       end
       (k+1..n+1).each do |i|
-        pivot = @lin_equ[k+1, k+1]
-        if (@lin_equ[i+1, k+1] != 0)
-          q = @lin_equ[i+1, k+1]/pivot
-          @lin_equ[i+1, k+1] = 0
+        pivot = @lin_equ[k+1][k+1]
+        if (@lin_equ[i+1][k+1] != 0)
+          q = @lin_equ[i+1][k+1]/pivot
+          @lin_equ[i+1][k+1] = 0
           (k+2..n+2).each do |l|
-            @lin_equ[i+1, l+1] -= q*@lin_equ[k+1, l+1]
+            @lin_equ[i+1][l+1] -= q*@lin_equ[k+1][l+1]
           end
         end
       end
       # inefficient but ok as first step
       calc_cub
     end
-    
+
+    @results = Array.new(n+3, 0)
+    (n+1).downto(-1) do |k|
+      result = @lin_equ[k+1][n+3]
+      (k+1..n+1).each do |l|
+        result -= results[l+1]*@lin_equ[k+1][l+1]
+      end
+      result /= @lin_equ[k+1][k+1]
+      @results[k+1] = result
+    end
+    @results
   end
-  
+
+  # erster Wurf für g
+  def g(x)
+    (-1..n+1).map do |i|
+      @results[i+1]*f_i(x, i)
+    end.reduce(0) do |s, t|
+      s+t
+    end
+  end
 end
