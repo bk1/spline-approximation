@@ -89,7 +89,17 @@ class SplineApproximation
     f((x-x_i(i))/h)
   end
 
+  def aggregate_tolerant(xi, eta, m = 1)
+    if (xi < x_min || xi > x_max)
+      return
+    end
+    aggregate(xi, eta, m)
+  end
+    
   def aggregate(xi, eta, m = 1)
+    if (xi < x_min || xi > x_max)
+      raise ("x=#{x} is out of range [x_min, x_max]=[#{x_min}, #{x_max}]")
+    end
     (-1..n+1).each do |k|
       m_f_k_xi = f_i(xi, k)
       @lin_equ[k+1][n+3] += m_f_k_xi*eta
