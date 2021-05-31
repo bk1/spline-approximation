@@ -88,7 +88,7 @@ class TestSplineApproximation_class < UnitTest
     check_aggregate_const(0, 1, 10, 0, 15)
     check_aggregate_const(0, 1, 10, 0, 14)
     check_aggregate_const(0, 1, 10, 0, 13)
-end
+  end
 
   def test_aggregate_const_1
     check_aggregate_const(0, 1, 1, 1, 8)
@@ -96,17 +96,21 @@ end
     check_aggregate_const(0, 1, 1, 1, 6)
     check_aggregate_const(0, 1, 1, 1, 5)
     check_aggregate_const(0, 1, 1, 1, 4)
+  end
 
+  def test_aggregate_const_1_m2
     check_aggregate_const(0, 1, 2, 1, 8)
     check_aggregate_const(0, 1, 2, 1, 7)
     check_aggregate_const(0, 1, 2, 1, 6)
     check_aggregate_const(0, 1, 2, 1, 5)
-
+  end
+  
+  def test_aggregate_const_1_m10
     check_aggregate_const(0, 1, 10, 1, 16)
     check_aggregate_const(0, 1, 10, 1, 15)
     check_aggregate_const(0, 1, 10, 1, 14)
     check_aggregate_const(0, 1, 10, 1, 13)
-end
+  end
 
   def test_aggregate_const_10
     check_aggregate_const(0, 1, 1, 10, 8)
@@ -114,7 +118,9 @@ end
     check_aggregate_const(0, 1, 1, 10, 6)
     check_aggregate_const(0, 1, 1, 10, 5)
     check_aggregate_const(0, 1, 1, 10, 4)
+  end
 
+  def test_aggregate_const_10_mx
     check_aggregate_const(0, 1, 2, 10, 5)
     check_aggregate_const(0, 1, 3, 10, 6)
     check_aggregate_const(0, 1, 4, 10, 7)
@@ -122,7 +128,7 @@ end
     check_aggregate_const(0, 1, 6, 10, 9)
     check_aggregate_const(0, 1, 7, 10, 10)
     check_aggregate_const(0, 1, 90, 10, 93)
-end
+  end
 
   def check_aggregate_const(x_min, x_max, n, c, m)
     delta = c.to_f / 3
@@ -137,14 +143,14 @@ end
     (0..2*m).each do |i|
       x = (x_min * (2*m-i) + x_max * i).to_f / (2*m)
       y = s.g(x)
-      puts("x=#{x} y=#{y} i=#{i} x_min=#{x_min} x_max=#{x_max} n=#{n} c=#{c} m=#{m}")
-      STDOUT.flush
+      # puts("x=#{x} y=#{y} i=#{i} x_min=#{x_min} x_max=#{x_max} n=#{n} c=#{c} m=#{m}")
+      # STDOUT.flush
       assert_in_delta(c, y, delta, "x=#{x} y=#{y} i=#{i} x_min=#{x_min} x_max=#{x_max} n=#{n} c=#{c} m=#{m}")
     end
     puts
   end
   
     
-end
+  end
 
 # end of file testlongdecimal.rb

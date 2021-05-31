@@ -135,6 +135,9 @@ class SplineApproximation
       pivot_i = -1
       pivot_crit = 0
       (k..n+1).each do |i|
+        if (@cub_sums[i+1] == 0)
+          raise ZeroDivisionError.new("cub_sums=#{@cub_sums} k=#{k} i=#{i} n=#{n} lin_equ=#{@lin_equ}")
+        end
         pc = @cub[i+1][k+1] / @cub_sums[i+1]
         if (pc > pivot_crit)
           pivot_i = i
