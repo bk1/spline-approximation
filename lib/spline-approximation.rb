@@ -34,7 +34,11 @@ class SplineApproximation
     # number of sub intervals
     @n = n
     # length of sub intervals
-    @h = (x_max - x_min)/n
+    len = x_max - x_min
+    if (len.kind_of? Integer)
+      len = len.to_f
+    end
+    @h = len/n
     @x = (0..n).map do |i|
       # calculate x_i
       x_min + i*h
@@ -86,7 +90,8 @@ class SplineApproximation
   end
 
   def f_i(x,i)
-    f((x-x_i(i))/h)
+    # puts("f_i(x=#{x} i=#{i}) x_i=#{x_i(i)} h=#{@h}")
+    f((x-x_i(i))/@h)
   end
 
   def aggregate_tolerant(xi, eta, m = 1)
@@ -101,14 +106,17 @@ class SplineApproximation
       raise ("x=#{x} is out of range [x_min, x_max]=[#{x_min}, #{x_max}]")
     end
     (-1..n+1).each do |k|
-      m_f_k_xi = f_i(xi, k)
+      m_f_k_xi = m*f_i(xi, k)
+      # puts("#{m}*f_#{k}(#{xi})=#{m_f_k_xi}")
       @lin_equ[k+1][n+3] += m_f_k_xi*eta
       (-1..n+1).each do |i|
         f_i_xi = f_i(xi, i)
         @lin_equ[k+1][i+1] += m_f_k_xi * f_i_xi
+        # puts("(#{i}, #{k}): f_#{i}(#{xi})=#{f_i_xi} p=#{m_f_k_xi * f_i_xi}")
       end
     end
     @count += m
+    # puts "aggregate(xi=#{xi} eta=#{eta}) lin_equ=#{@lin_equ}"
   end
 
   def calc_cub
@@ -127,6 +135,10 @@ class SplineApproximation
       i += 1
       cline
     end
+    # puts "lin_equ=#{@lin_equ}"
+    # puts "cub_sums=#{@cub_sums}"
+    # puts "cub=#{@cub}"
+    STDOUT.flush
   end
   
   def solve
@@ -136,7 +148,9 @@ class SplineApproximation
       pivot_crit = 0
       (k..n+1).each do |i|
         if (@cub_sums[i+1] == 0)
-          raise ZeroDivisionError.new("cub_sums=#{@cub_sums} k=#{k} i=#{i} n=#{n} lin_equ=#{@lin_equ}")
+          err = "cub_sums=#{@cub_sums} k=#{k} i=#{i} n=#{n} lin_equ=#{@lin_equ}"
+          puts "ERROR: #{err}"
+          raise ZeroDivisionError.new(err)
         end
         pc = @cub[i+1][k+1] / @cub_sums[i+1]
         if (pc > pivot_crit)
@@ -151,10 +165,13 @@ class SplineApproximation
       end
       (k+1..n+1).each do |i|
         pivot = @lin_equ[k+1][k+1]
+        if (pivot.kind_of? Integer)
+          pivot = pivot.to_f
+        end
         if (@lin_equ[i+1][k+1] != 0)
           q = @lin_equ[i+1][k+1]/pivot
           @lin_equ[i+1][k+1] = 0
-          (k+2..n+2).each do |l|
+          (k+1..n+2).each do |l|
             @lin_equ[i+1][l+1] -= q*@lin_equ[k+1][l+1]
           end
         end
@@ -166,10 +183,14 @@ class SplineApproximation
     @results = Array.new(n+3, 0)
     (n+1).downto(-1) do |k|
       result = @lin_equ[k+1][n+3]
+      # puts "k=#{k} result=#{result} (p)"
       (k+1..n+1).each do |l|
         result -= results[l+1]*@lin_equ[k+1][l+1]
+        # puts "k=#{k} l=#{l} result=#{result} (s)"
       end
+      # puts "k=#{k} result=#{result} (q)"
       result /= @lin_equ[k+1][k+1]
+      # puts "k=#{k} result=#{result}"
       @results[k+1] = result
     end
     @results

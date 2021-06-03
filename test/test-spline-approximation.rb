@@ -76,7 +76,7 @@ class TestSplineApproximation_class < UnitTest
     puts e
   end
 
-  def _test_aggregate_const_0
+  def test_aggregate_const_0
     check_aggregate_const(0, 1, 1, 0, 6)
     check_aggregate_const(0, 1, 1, 0, 5)
     check_aggregate_const(0, 1, 1, 0, 4)
@@ -98,14 +98,14 @@ class TestSplineApproximation_class < UnitTest
     check_aggregate_const(0, 1, 1, 1, 4)
   end
 
-  def test_aggregate_const_1_m2
+  def test_aggregate_const_1_n2
     check_aggregate_const(0, 1, 2, 1, 8)
     check_aggregate_const(0, 1, 2, 1, 7)
     check_aggregate_const(0, 1, 2, 1, 6)
     check_aggregate_const(0, 1, 2, 1, 5)
   end
   
-  def test_aggregate_const_1_m10
+  def test_aggregate_const_1_n10
     check_aggregate_const(0, 1, 10, 1, 16)
     check_aggregate_const(0, 1, 10, 1, 15)
     check_aggregate_const(0, 1, 10, 1, 14)
@@ -120,7 +120,7 @@ class TestSplineApproximation_class < UnitTest
     check_aggregate_const(0, 1, 1, 10, 4)
   end
 
-  def test_aggregate_const_10_mx
+  def test_aggregate_const_10_nx
     check_aggregate_const(0, 1, 2, 10, 5)
     check_aggregate_const(0, 1, 3, 10, 6)
     check_aggregate_const(0, 1, 4, 10, 7)
@@ -131,6 +131,7 @@ class TestSplineApproximation_class < UnitTest
   end
 
   def check_aggregate_const(x_min, x_max, n, c, m)
+    puts "------------------------------------------------------------"
     delta = c.to_f / 3
     s = SplineApproximation.new(x_min, x_max, n)
     (0..m).each do |i|
@@ -143,10 +144,10 @@ class TestSplineApproximation_class < UnitTest
     (0..2*m).each do |i|
       x = (x_min * (2*m-i) + x_max * i).to_f / (2*m)
       y = s.g(x)
-      # puts("x=#{x} y=#{y} i=#{i} x_min=#{x_min} x_max=#{x_max} n=#{n} c=#{c} m=#{m}")
-      # STDOUT.flush
+      puts("x=#{x} y=#{y} i=#{i} x_min=#{x_min} x_max=#{x_max} n=#{n} c=#{c} m=#{m}")
       assert_in_delta(c, y, delta, "x=#{x} y=#{y} i=#{i} x_min=#{x_min} x_max=#{x_max} n=#{n} c=#{c} m=#{m}")
     end
+    puts "------------------------------------------------------------"
     puts
   end
   
