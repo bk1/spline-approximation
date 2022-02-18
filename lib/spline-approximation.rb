@@ -45,7 +45,9 @@ class SplineApproximation
     end
     @x_i = (-3..n+3).map do |i|
       x_min + i*h
-    end      
+    end
+    @x_minus_3 = @x_i[0]
+    @x_n_plus_3 = @x_i[n+6]
 
     # rows 1..n with 
     @lin_equ = ((-1)..(n+1)).map do |i|
@@ -56,7 +58,7 @@ class SplineApproximation
     
   end # initialize
 
-  attr_reader :x_min, :x_max, :n, :h, :x, :count, :results
+  attr_reader :x_min, :x_max, :n, :h, :x, :count, :results, :coefficients
 
   def to_s
     "SplineApproximation(x_min=#{x_min} x_max=#{x_max} n=#{n} count=#{count})"
@@ -149,7 +151,7 @@ class SplineApproximation
       (k..n+1).each do |i|
         if (@cub_sums[i+1] == 0)
           err = "cub_sums=#{@cub_sums} k=#{k} i=#{i} n=#{n} lin_equ=#{@lin_equ}"
-          puts "ERROR: #{err}"
+          STDERR.puts "ERROR: #{err}"
           raise ZeroDivisionError.new(err)
         end
         pc = @cub[i+1][k+1] / @cub_sums[i+1]
@@ -159,8 +161,8 @@ class SplineApproximation
         end
       end
       if (pivot_i != k)
-        line = @lin_equ[i+1]
-        @lin_equ[i+1] = @lin_equ[k+1]
+        line = @lin_equ[pivot_i+1]
+        @lin_equ[pivot_i+1] = @lin_equ[k+1]
         @lin_equ[k+1] = line
       end
       (k+1..n+1).each do |i|
@@ -185,7 +187,7 @@ class SplineApproximation
       result = @lin_equ[k+1][n+3]
       # puts "k=#{k} result=#{result} (p)"
       (k+1..n+1).each do |l|
-        result -= results[l+1]*@lin_equ[k+1][l+1]
+        result -= @results[l+1]*@lin_equ[k+1][l+1]
         # puts "k=#{k} l=#{l} result=#{result} (s)"
       end
       # puts "k=#{k} result=#{result} (q)"
@@ -193,15 +195,118 @@ class SplineApproximation
       # puts "k=#{k} result=#{result}"
       @results[k+1] = result
     end
+    calculate_coefficients()
     @results
   end
 
-  # erster Wurf für g
-  def g(x)
+  def ser
+    "coefficients=#{@coefficients}\ncount={@count}\nh={@h}\nn=#{@n}\nresults=#{@results}\nx_min=#{@x_min}\nx_max={@x_max}\nx=#{@x}\nx_i=#{@x_i}\n";
+  end
+
+  def self.deser(s)
+    lines = s.split("\n")
+    x_min = nil
+    x_max = nil
+    rmi=/x_min=(?<V>\S+)/
+    rma=/x_max=(?<V>\S+)/
+    lines.each do |line|
+      m = line.match(rmi)
+      if (m) then
+        x_min = m[:V].to_f
+      end
+      m = line.match(rma)
+      if (m) then
+        x_max = m[:V].to_f
+      end
+    end
+    if ((x_min.kind_of? Float) && (x_max.kind_of? Float)) then
+      result = SplineApproximation.new(x_min, x_max)
+      result.deser_internal(lines)
+      result
+    else
+      raise "x_min or x_max missing"
+    end
+  end
+    
+  def deser_internal(lines)
+    r_count = /count=(?<V>\d+)/
+    r_h = /h=(?<V>\S+)/
+    r_n = /n=(?<V>\d+)/
+    r_results = /results=\[(?<V>.+)\]/
+    r_x = /x=\[(?<V>.+)\]/
+    r_x_i = /x_i=\[(?<V>.+)\]/
+    lines.each do |line|
+      m = line.match(r_count)
+      if (m)
+        @count = m[:V].to_i
+      end
+      m = line.match(r_h)
+      if (m)
+        @h = m[:V].to_f
+      end
+      m = line.match(r_n)
+      if (m)
+        @n = m[:V].to_i
+      end
+      m = line.match(r_results)
+      if (m)
+         @results = m[:V].split(/,/).map do |e|
+          e.to_f
+        end
+      end
+      m = line.match(r_x)
+      if (m)
+         @x = m[:V].split(/,/).map do |e|
+          e.to_f
+        end
+      end
+      m = line.match(r_x_i)
+      if (m)
+         @x_i = m[:V].split(/,/).map do |e|
+          e.to_f
+        end
+      end
+    end
+    calculate_coefficients
+  end
+    
+  def calculate_coefficients
+    @coefficients = Array.new(n+6) { Array.new(4,0) }
+    h=@h
+    ext_result = ([0.0]*4).concat(@results).concat([0.0]*4)
+    (-3..(n+2)).each do |i|
+      a = ext_result[5+i-1]
+      b = ext_result[5+i]
+      c = ext_result[5+i+1]
+      d = ext_result[5+i+2]
+      @coefficients[i+3][0] = (-d+5*c+17*b+27*a)/8.0
+      @coefficients[i+3][1] = (3*d-9*c+33*b-27*a)/(4.0*h)
+      @coefficients[i+3][2] = (-3*d+15*c-21*b+9*a)/(2.0*h*h)
+      @coefficients[i+3][3] = (d-3*c+3*b-a)/(1.0*h*h*h)
+    end
+  end
+
+  # simple implementation of g
+  def gs(x)
     (-1..n+1).map do |i|
       @results[i+1]*f_i(x, i)
     end.reduce(0) do |s, t|
       s+t
     end
   end
+
+  # efficient implementation of g
+  def g(x)
+    if (x <= @x_minus_3)
+      0
+    elsif (x >= @x_n_plus_3)
+      0
+    else
+      i = ((x - @x_min)/@h).floor
+      xx = (x_i(i) + x_i(i+1))/2
+      y = x-xx
+      ((@coefficients[i+3][3]*y+@coefficients[i+3][2])*y+@coefficients[i+3][1])*y+@coefficients[i+3][0]
+    end
+  end
+  
 end
